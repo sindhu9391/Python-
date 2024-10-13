@@ -1,0 +1,135 @@
+import random
+
+# Initialize a 4x4 grid
+def initialize_grid():
+    grid = [[0] * 4 for _ in range(4)]
+    spawn_tile(grid)
+    spawn_tile(grid)
+    return grid
+
+# Spawn a 2 or 4 tile on an empty spot
+def spawn_tile(grid):
+    empty_tiles = [(r, c) for r in range(4) for c in range(4) if grid[r][c] == 0]
+    if empty_tiles:
+        r, c = random.choice(empty_tiles)
+        grid[r][c] = random.choice([2, 4])
+
+# Print the current grid to the console
+def print_grid(grid):
+    print("\nCurrent Grid:")
+    for row in grid:
+        print('\t'.join([str(cell) if cell != 0 else '.' for cell in row]))
+    print()
+
+# Merge the tiles in a row
+def merge(row):
+    row = [i for i in row if i != 0]  # Remove empty spaces
+    for i in range(len(row) - 1):     # Merge tiles if they are the same
+        if row[i] == row[i + 1]:
+            row[i] *= 2
+            row[i + 1] = 0
+    row = [i for i in row if i != 0]  # Remove empty spaces again
+    return row + [0] * (4 - len(row))
+
+# Transpose the grid (for moving up and down)
+def transpose(grid):
+    return [list(row) for row in zip(*grid)]
+
+# Reverse the grid (for moving right)
+def reverse(grid):
+    return [row[::-1] for row in grid]
+
+# Move tiles in the specified direction
+def move(grid, direction):
+    if direction == 'up':
+        grid = transpose(grid)
+        grid = [merge(row) for row in grid]
+        grid = transpose(grid)
+    elif direction == 'down':
+        grid = transpose(grid)
+        grid = reverse([merge(row[::-1]) for row in grid])
+        grid = transpose(grid)
+    elif direction == 'left':
+        grid = [merge(row) for row in grid]
+    elif direction == 'right':
+        grid = reverse([merge(row[::-1]) for row in grid])
+    return grid
+
+# Check if there are any valid moves left
+def check_game_over(grid):
+    for row in grid:
+        if 0 in row:
+            return False
+        for i in range(3):
+            if row[i] == row[i + 1]:
+                return False
+    for row in transpose(grid):
+        for i in range(3):
+            if row[i] == row[i + 1]:
+                return False
+    return True
+
+# Check if the player has reached the 2048 tile
+def check_win(grid):
+    for row in grid:
+        if 2048 in row:
+            return True
+    return False
+
+# Calculate the score (sum of all tiles)
+def calculate_score(grid):
+    return sum(sum(row) for row in grid)
+
+# Provide a simple hint (check if any move will merge tiles)
+def give_hint(grid):
+    for direction in ['up', 'down', 'left', 'right']:
+        temp_grid = [row[:] for row in grid]
+        temp_grid = move(temp_grid, direction)
+        if temp_grid != grid:
+            print(f"Hint: Try moving {direction}")
+            return
+    print("No hints available. Try any move!")
+
+# Select difficulty level (change the chance of 4 spawning instead of 2)
+def select_difficulty():
+    while True:
+        difficulty = input("Select difficulty (easy/medium/hard): ").lower()
+        if difficulty in ['easy', 'medium', 'hard']:
+            if difficulty == 'easy':
+                return 0.9  # 90% chance for a 2, 10% for a 4
+            elif difficulty == 'medium':
+                return 0.75  # 75% chance for a 2, 25% for a 4
+            elif difficulty == 'hard':
+                return 0.6  # 60% chance for a 2, 40% for a 4
+        else:
+            print("Invalid difficulty level. Choose again.")
+
+# Main game loop
+def play_game():
+    print("Welcome to the 2048 Game!")
+    grid = initialize_grid()
+    difficulty_chance = select_difficulty()
+    
+    while True:
+        print_grid(grid)
+        print(f"Score: {calculate_score(grid)}")
+        
+        if check_win(grid):
+            print("Congratulations! You've reached 2048!")
+            break
+
+        if check_game_over(grid):
+            print("Game Over! No more moves left.")
+            break
+        
+        move_choice = input("Enter move (up/down/left/right) or 'hint' for a hint: ").lower()
+        if move_choice in ['up', 'down', 'left', 'right']:
+            grid = move(grid, move_choice)
+            spawn_tile(grid)
+        elif move_choice == 'hint':
+            give_hint(grid)
+        else:
+            print("Invalid move. Try again.")
+
+if __name__ == "__main__":
+    play_game()
